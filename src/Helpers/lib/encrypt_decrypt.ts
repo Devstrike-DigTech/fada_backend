@@ -2,9 +2,9 @@ import { InternalServerErrorException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 
 export class EncryptDecrypt {
-  public static async encrypt(password: string) {
+  public static async encrypt(plain: string) {
     try {
-      const hash = await argon2.hash('password');
+      const hash = await argon2.hash(plain);
 
       return hash;
     } catch (e) {
@@ -12,9 +12,9 @@ export class EncryptDecrypt {
     }
   }
 
-  public static async decrypt(hash: string, password: string) {
+  public static async decrypt(hash: string, plain: string) {
     try {
-      if (await argon2.verify(hash, password)) {
+      if (await argon2.verify(hash, plain)) {
         return true;
       } else {
         return false;

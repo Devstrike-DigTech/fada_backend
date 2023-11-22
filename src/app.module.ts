@@ -6,13 +6,21 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DATABASE_URL } from './Helpers/Config';
 import { UserModule } from './User/user.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import type { RedisClientOptions } from 'redis';
+import * as redisStore from 'cache-manager-redis-store';
 
 @Module({
   imports: [
+    CacheModule.register<RedisClientOptions>({
+      isGlobal: true,
+      store: redisStore,
+      url: 'redis://localhost:6379',
+    }),
     AuthModule,
     UserModule,
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot('mongodb://localhost/nest'),
+    MongooseModule.forRoot(DATABASE_URL),
   ],
   controllers: [AppController],
   providers: [AppService],

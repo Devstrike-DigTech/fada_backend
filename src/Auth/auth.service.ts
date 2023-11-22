@@ -1,144 +1,168 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { UserRepository } from 'src/User/user.repository';
-import { RegisterDTO } from './dto/register.dto';
+import { RegisterDTO } from './dto';
 import Phone from 'src/Helpers/lib/phone.lib';
 import { EncryptDecrypt } from 'src/Helpers/lib/encrypt_decrypt';
 import { OTPGenerator } from 'src/Helpers/lib/otpGenerator';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import {
+  ACCESS_TOKEN_SECRET,
+  ACCESS_TOKEN_TTL,
+  OTP_TTL,
+  REFRESH_TOKEN_SECRET,
+  REFRESH_TOKEN_TTL,
+} from 'src/Helpers/Config';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from 'jsonwebtoken';
+import { IToken } from './types';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly UserRepository: UserRepository) {}
+  constructor(
+    private readonly UserRepository: UserRepository,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly JwtService: JwtService,
+  ) {}
 
   public async register(user: RegisterDTO) {
-    //check if phone is valid?
-    const phone = Phone.format_validate(user.phone);
-    if (!phone) throw new BadRequestException('Phone already Exist');
+    const formatted_phone_or_unverified_user =
+      await this.validate_registering_user(user.email, user.phone);
 
-    //check if email exist
-    const dbUser = await this.UserRepository.isEmailExist(user.email);
-    if (dbUser && dbUser.email && dbUser.isVerified)
-      return { email: dbUser.email, msg: 'verify your account to continue' };
-
-    if (dbUser && dbUser.email)
-      throw new BadRequestException('Email already Exist');
-
-    if (dbUser && dbUser.phone == user.phone)
-      throw new BadRequestException('Phone already Exist');
+    if (typeof formatted_phone_or_unverified_user != 'string')
+      return formatted_phone_or_unverified_user;
 
     //hash password
     const password = await EncryptDecrypt.encrypt(user.password);
 
     //store user in db
-    await this.UserRepository.create({}, { ...user, password, phone });
+    await this.UserRepository.create(
+      {},
+      { ...user, password, phone: formatted_phone_or_unverified_user },
+    );
 
     //generate otp
     const otp = OTPGenerator.generate();
 
     //Store user otp to redis or cache
+    await this.cacheManager.set(user.email, await EncryptDecrypt.encrypt(otp), {
+      ttl: OTP_TTL,
+    });
 
     //Send user otp
     console.log(otp);
+    const hashed = await this.cacheManager.get(user.email);
 
     return 'OTP sent to email';
   }
 
   public async login() {
     //check if email exist
-
     //verify password
-
     //generate jwt
-    return this.forgot_password('09012318901');
   }
 
-  public async forgot_password(
-    phone: string,
-    type = 'ng',
-    acceptLandline = false,
-  ) {
-    phone = phone.trim();
-
-    switch (type.toLowerCase()) {
-      case 'ng':
-        const landline = /^(707|709|804|819)(\d{7})$/;
-        const landline2 = /^(7028|7029|7027)(\d{6})$/;
-
-        const mobile =
-          /^(701|703|704|705|706|708|801|802|803|805|806|807|808|809|810|811|812|813|814|815|816|817|818|901|902|903|904|905|906|907|908|909|911|912|913|915|916)(\d{7})$/;
-        const mobile2 = /^(7020|7021|7022|7025|7026)(\d{6})$/;
-
-        // Clean number
-        phone = phone.replace(/[-(). ]/g, '');
-        // Remove country code +234
-        phone = phone.replace(/^\+/, '');
-        phone = phone.replace(/^234/, '');
-        // Remove leading zero (0)
-        phone = phone.replace(/^0/, '');
-
-        // Test number
-        if (/^702/.test(phone)) {
-          if (acceptLandline) {
-            return landline2.test(phone) || mobile2.test(phone)
-              ? '+234' + phone
-              : false;
-          }
-          return mobile2.test(phone) ? '+234' + phone : false;
-        }
-
-        if (acceptLandline) {
-          return landline.test(phone) || mobile.test(phone)
-            ? '+234' + phone
-            : false;
-        }
-
-        return mobile.test(phone) ? '+234' + phone : false;
-
-      case 'ngland':
-        const patternNgLand =
-          /^((0)[129]|(3)([01]|[3-9])|(4)[1-8]|(5)[0-9]|(6)[0-9]|(7)([1-3]|[5-9])|(8)[2-9])(\d{7})$/;
-        // Clean number
-        phone = phone.replace(/[-(). ]/g, '');
-        // Remove country code +234
-        phone = phone.replace(/^\+/, '');
-        phone = phone.replace(/^234/, '');
-        // Remove leading zero (0)
-        phone = phone.replace(/^0/, '');
-
-        if (/^[129]/.test(phone)) {
-          return patternNgLand.test('0' + phone) ? '+234' + phone : false;
-        }
-
-        return patternNgLand.test(phone) ? '+234' + phone : false;
-
-      case 'uk':
-        const patternUk = /^(7)(\d{9})$/;
-        // Clean number
-        phone = phone.replace(/[-(). ]/g, '');
-        // Remove country code +44
-        phone = phone.replace(/^\+/, '');
-        phone = phone.replace(/^44/, '');
-        // Remove leading zero (0)
-        phone = phone.replace(/^0/, '');
-
-        // Test number
-        return patternUk.test(phone) ? '+44' + phone : false;
-
-      case 'us':
-        const patternUs = /^(\d{10})$/;
-        // Clean number
-        phone = phone.replace(/[-(). ]/g, '');
-        // Remove country code +1
-        phone = phone.replace(/^\+1/, '');
-
-        // Test number
-        return patternUs.test(phone) ? '+1' + phone : false;
-
-      default:
-        return false;
-    }
-  }
+  public async forgot_password() {}
 
   public async reset_password() {}
 
-  public async verify_otp(otp: string, email: string) {}
+  public async verify_otp(otp: string, email: string): Promise<IToken> {
+    const hashedOtp = await this.cacheManager.get(email);
+    console.log(hashedOtp);
+
+    if (!hashedOtp) throw new ForbiddenException('expired OTP');
+
+    const isValidOtp = await EncryptDecrypt.decrypt(hashedOtp as string, otp);
+
+    if (!isValidOtp) throw new ForbiddenException('invalid OTP');
+
+    //get user from db
+    const user = await this.UserRepository.findOne(
+      { email },
+      { email: 1, id: 1, role: 1 },
+    );
+
+    if (!user) throw new ForbiddenException('Access Denied');
+
+    //generate jwt and sign user in
+    const tokens = await this.generateAuthTokens(
+      user.id,
+      user.email,
+      user.role,
+    );
+
+    // update user profile to verified, status to active and new refresh Token
+    await this.UserRepository.findOneAndUpdate(
+      {
+        is_verified: true,
+        active: true,
+        refresh_token: [await EncryptDecrypt.encrypt(tokens.refresh_token)],
+      },
+      { email },
+      { email: 1, id: 1, role: 1 },
+    );
+
+    //send Welcome Email
+
+    return tokens;
+  }
+
+  private async validate_registering_user(
+    email: string,
+    phone: string,
+  ): Promise<string | { email: string; msg: string }> {
+    //check if phone is valid?
+    const formatted_phone = Phone.format_validate(phone);
+    if (!formatted_phone) throw new BadRequestException('Phone not valid');
+
+    //check if email exist
+    const existingUser = await this.UserRepository.isEmailExist(email);
+
+    if (existingUser && existingUser.email && !existingUser.is_verified)
+      return {
+        email: existingUser.email,
+        msg: 'verify your account to continue',
+      };
+
+    if (existingUser && existingUser.email)
+      throw new BadRequestException('Email already Exist');
+
+    if (await this.UserRepository.isPhone(formatted_phone))
+      throw new BadRequestException('Phone already Exist');
+
+    return formatted_phone;
+  }
+
+  private async generateAuthTokens(
+    id: string,
+    email: string,
+    role: string,
+  ): Promise<IToken> {
+    const payload = {
+      id,
+      email,
+      role,
+    };
+    return {
+      access_token: await this.signToken(
+        payload,
+        ACCESS_TOKEN_SECRET,
+        ACCESS_TOKEN_TTL,
+      ),
+      refresh_token: await this.signToken(
+        payload,
+        REFRESH_TOKEN_SECRET,
+        REFRESH_TOKEN_TTL,
+      ),
+    };
+  }
+
+  private async signToken(payload: JwtPayload, secret: string, ttl: string) {
+    return await this.JwtService.signAsync(payload, { secret, expiresIn: ttl });
+  }
 }

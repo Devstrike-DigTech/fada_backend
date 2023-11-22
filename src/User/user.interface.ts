@@ -10,7 +10,8 @@ export interface IUser extends Document {
   phone: string;
   dob: string;
   role: string; //enum
-  isVerified: boolean;
+  is_verified: boolean;
+  refresh_token: string[];
   active: boolean;
   created_at: string;
   updated_at: string;

@@ -5,6 +5,8 @@ import { ROLE } from 'src/Helpers/Config';
 export const userSchema = new Schema<IUser>({
   fada_id: {
     type: String,
+    index: true,
+    unique: true,
   },
   first_name: {
     type: String,
@@ -14,15 +16,21 @@ export const userSchema = new Schema<IUser>({
   },
   email: {
     type: String,
+    unique: true,
+    index: true,
   },
   password: {
     type: String,
   },
   google_id: {
     type: String,
+    unique: true,
+    index: true,
   },
   phone: {
     type: String,
+    unique: true,
+    index: true,
   },
   dob: {
     type: String,
@@ -31,11 +39,17 @@ export const userSchema = new Schema<IUser>({
     type: String,
     enum: ROLE,
   },
-  isVerified: {
+  is_verified: {
     type: Boolean,
     default: false,
   },
+  refresh_token: {
+    type: [String],
+  },
   active: {
     type: Boolean,
+    default: false,
   },
 });
+
+userSchema.index({ email: 1 });

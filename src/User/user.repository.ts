@@ -12,10 +12,10 @@ export class UserRepository extends DbRepository<IUser> {
   }
 
   async isEmailExist(email): Promise<IUser | null> {
-    return await this.model.findOne({ email });
+    return await this.findOne({ email }, { email: 1, phone: 1, isVerified: 1 });
   }
 
   async isPhone(phone: string): Promise<boolean> {
-    return (await this.model.findOne({ phone })) ? true : false;
+    return !!(await this.model.findOne({ phone }));
   }
 }
