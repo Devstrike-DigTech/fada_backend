@@ -29,11 +29,7 @@ export class DbRepository<T extends Document> {
     options: Record<string, unknown> = {},
   ) {
     try {
-      const result = await this.model.find(
-        conditions as FilterQuery<T>,
-        projection,
-        options,
-      );
+      const result = await this.model.find(conditions as FilterQuery<T>, projection, options);
 
       return result;
     } catch (e) {
@@ -47,11 +43,7 @@ export class DbRepository<T extends Document> {
     options: Record<string, unknown> = {},
   ) {
     try {
-      const result = await this.model.findOne(
-        conditions as FilterQuery<T>,
-        projection,
-        options,
-      );
+      const result = await this.model.findOne(conditions as FilterQuery<T>, projection, options);
 
       return result;
     } catch (e) {
@@ -67,12 +59,23 @@ export class DbRepository<T extends Document> {
   ) {
     try {
       const result = await this.model
-        .findOneAndUpdate(
-          conditions as FilterQuery<T>,
-          data as UpdateQuery<T>,
-          options,
-        )
+        .findOneAndUpdate(conditions as FilterQuery<T>, data as UpdateQuery<T>, options)
         .select(projection);
+
+      return result;
+    } catch (e) {
+      console.log(e);
+      throw new InternalServerErrorException('Server Error');
+    }
+  }
+
+  public async findOneAndDelete(
+    conditions: Partial<Record<keyof T, unknown>>,
+    projection: string | Record<string, number> = {},
+    options: Record<string, unknown> = { new: true, runValidators: true },
+  ) {
+    try {
+      const result = await this.model.findOneAndDelete(conditions as FilterQuery<T>, options).select(projection);
 
       return result;
     } catch (e) {

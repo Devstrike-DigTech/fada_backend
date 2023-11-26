@@ -11,7 +11,6 @@ export interface IUser extends Document {
   dob: string;
   role: string; //enum
   is_verified: boolean;
-  refresh_token: string[];
   active: boolean;
   created_at: string;
   updated_at: string;

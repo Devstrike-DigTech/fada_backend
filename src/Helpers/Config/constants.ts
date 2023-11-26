@@ -4,6 +4,7 @@ export const DATABASE_CONNECTION = 'DATABASE_CONNECTION';
  * Database Collection Names
  */
 export const USER_MODEL = 'users';
+export const AUTH_MGT_MODEL = 'authMgt';
 /**
  * constants
  */

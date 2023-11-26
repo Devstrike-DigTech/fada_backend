@@ -1,13 +1,10 @@
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDTO, VerifyOTPDTO } from './dto';
+import { LoginDTO, RegisterDTO, VerifyOTPDTO } from './dto';
 import { Cookies } from 'src/Helpers/decorators/cookies.decorator';
-import { Response } from 'express';
-import {
-  REFRESH_TOKEN_COOKIE,
-  REFRESH_TOKEN_COOKIE_TTL,
-  REFRESH_TOKEN_TTL,
-} from '../Helpers/Config';
+import { Request, Response } from 'express';
+import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_TTL } from '../Helpers/Config';
+import { ResetPasswordDTO } from './dto/resetPassword.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -20,11 +17,13 @@ export class AuthController {
     return { data: user, msg: 'success' };
   }
 
-  @Post('verifyotp')
-  public async verifyOTP(@Body() body: VerifyOTPDTO, @Res() res: Response) {
+  @Post('verify_otp')
+  public async verifyOTP(@Body() body: VerifyOTPDTO, @Res() res: Response, @Req() req: Request) {
     const { access_token, refresh_token } = await this.AuthService.verify_otp(
       body.otp,
       body.email,
+      req.header('user-agent'),
+      req.ip,
     );
 
     res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
@@ -37,8 +36,6 @@ export class AuthController {
         access_token,
       },
     });
-
-    // return { data: 'jwt' };
   }
 
   @Post('google')
@@ -49,17 +46,62 @@ export class AuthController {
   }
 
   @Post('login')
-  public async login() {
-    return await this.AuthService.login();
-    // return 'OKAY_LETS_BEGIN';
+  public async login(
+    @Body() body: LoginDTO,
+    @Res() res: Response,
+    @Req() req: Request,
+    @Cookies(REFRESH_TOKEN_COOKIE) refresh_token_cookie: string,
+  ) {
+    const { access_token, refresh_token } = await this.AuthService.login(
+      body.username,
+      body.password,
+      req.ip,
+      req.header('user-agent'),
+      refresh_token_cookie,
+    );
+    res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
+      httpOnly: true,
+      maxAge: REFRESH_TOKEN_COOKIE_TTL,
+    });
+
+    res.status(200).json({
+      data: {
+        access_token,
+      },
+    });
   }
 
   @Post('forgot_password')
-  public async forgot_password() {}
+  public async forgot_password(@Body('email') email: string) {
+    return await this.AuthService.forgot_password(email);
+  }
 
   @Post('reset_password')
-  public async reset_password() {}
+  public async reset_password(@Body() body: ResetPasswordDTO, @Res() res: Response, @Req() req: Request) {
+    const { access_token, refresh_token } = await this.AuthService.reset_password(
+      body.password,
+      body.email,
+      body.otp,
+      req.ip,
+      req.header('user-agent'),
+    );
 
-  @Post('refresh_token')
-  public async refresh_token() {}
+    res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
+      httpOnly: true,
+      maxAge: REFRESH_TOKEN_COOKIE_TTL,
+    });
+
+    res.status(200).json({
+      data: {
+        access_token,
+      },
+    });
+  }
+
+  @Get('refresh_token')
+  public async refresh_token(@Req() req: Request) {
+    console.log(req.ip);
+    console.log(req.header('user-agent'));
+    return 'okay';
+  }
 }

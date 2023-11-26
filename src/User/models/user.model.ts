@@ -1,5 +1,5 @@
-import { Schema, Model, Types } from 'mongoose';
-import { IUser } from './user.interface';
+import { Schema } from 'mongoose';
+import { IUser } from '../interfaces/user.interface';
 import { ROLE } from 'src/Helpers/Config';
 
 export const userSchema = new Schema<IUser>({
@@ -43,13 +43,10 @@ export const userSchema = new Schema<IUser>({
     type: Boolean,
     default: false,
   },
-  refresh_token: {
-    type: [String],
-  },
   active: {
     type: Boolean,
     default: false,
   },
 });
 
-userSchema.index({ email: 1 });
+userSchema.index({ email: 1, google_id: 1, fada_id: 1, phone: 1 });
