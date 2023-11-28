@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDTO, RegisterDTO, VerifyOTPDTO } from './dto';
 import { Cookies } from 'src/Helpers/decorators/cookies.decorator';
 import { Request, Response } from 'express';
 import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_TTL } from '../Helpers/Config';
 import { ResetPasswordDTO } from './dto/resetPassword.dto';
+import { AccessTokenGuard, RefreshTokenGuard } from '../Shared/guards';
 
 @Controller('auth')
 export class AuthController {
@@ -98,10 +99,30 @@ export class AuthController {
     });
   }
 
+  @UseGuards(RefreshTokenGuard)
   @Get('refresh_token')
-  public async refresh_token(@Req() req: Request) {
-    console.log(req.ip);
-    console.log(req.header('user-agent'));
-    return 'okay';
+  public async refresh_token(@Req() req: Request, @Res() res: Response) {
+    const { access_token, refresh_token } = await this.AuthService.refreshToken(
+      req.user['id'],
+      req.user['refresh_token'],
+      req.header('user-agent'),
+      req.ip,
+    );
+    res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
+      httpOnly: true,
+      maxAge: REFRESH_TOKEN_COOKIE_TTL,
+    });
+
+    res.status(200).json({
+      data: {
+        access_token,
+      },
+    });
+  }
+  @UseGuards(AccessTokenGuard)
+  @Get('route')
+  public async protectedRoute(@Req() req: Request) {
+    console.log(req.user);
+    return 'yea';
   }
 }

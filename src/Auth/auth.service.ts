@@ -3,8 +3,8 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  NestMiddleware,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserRepository } from 'src/User/user.repository';
 import { RegisterDTO } from './dto';
@@ -20,11 +20,10 @@ import {
   REFRESH_TOKEN_SECRET,
   REFRESH_TOKEN_TTL,
 } from 'src/Helpers/Config';
-import { JsonWebTokenError, JwtService } from '@nestjs/jwt';
+import { JsonWebTokenError, JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { JwtPayload } from 'jsonwebtoken';
 import { IToken } from './types';
 import { AuthMgtRepository } from '../User/authMgt.repository';
-import { NotFoundError } from 'rxjs';
 
 @Injectable()
 export class AuthService {
@@ -235,16 +234,56 @@ export class AuthService {
     //Todo Sign in with google
   }
 
-  public async refreshToken(refresh_token: string) {
+  public async refreshToken(user_id: string, refresh_token: string, user_agent: string, user_ip: string) {
     //Todo refresh token functionality
-    const foundToken = await this.AuthMgtRepository.findOne({ refresh_token }, {});
+    const userRefreshTokens = await this.AuthMgtRepository.findMany(
+      { user_id },
+      { user_id: 1, id: 1, refresh_token: 1 },
+    );
 
+    if (!userRefreshTokens && userRefreshTokens.length <= 0) throw new UnauthorizedException();
+    const foundToken = userRefreshTokens.find(async (el: any) => {
+      return await EncryptDecrypt.decrypt(el.refresh_token, refresh_token);
+    });
+
+    //1) Find item where refresh token matches
     if (!foundToken) {
       const decodedUser = await this.JwtService.verify(refresh_token, { secret: REFRESH_TOKEN_SECRET });
       if (decodedUser instanceof JsonWebTokenError) throw new ForbiddenException();
 
       await this.AuthMgtRepository.model.deleteMany({ user_id: decodedUser.id });
     }
+
+    //2) verify refresh token
+    const ExpiredOrInvalidToken = await this.JwtService.verify(refresh_token, { secret: REFRESH_TOKEN_SECRET });
+
+    //3) if token is expired clear refresh_token  from db
+    if (ExpiredOrInvalidToken instanceof TokenExpiredError) {
+      await this.AuthMgtRepository.findOneAndDelete({ _id: foundToken._id });
+    }
+
+    //4) if token is invalid or expired
+    if (ExpiredOrInvalidToken instanceof JsonWebTokenError || ExpiredOrInvalidToken.id != foundToken.user_id) {
+      throw new UnauthorizedException();
+    }
+
+    const tokens = await this.generateAuthTokens(
+      ExpiredOrInvalidToken.id,
+      ExpiredOrInvalidToken.email,
+      ExpiredOrInvalidToken.role,
+    );
+
+    //replace refresh token in db
+    await this.AuthMgtRepository.findOneAndUpdate(
+      {
+        refresh_token: await EncryptDecrypt.encrypt(refresh_token),
+        user_agent,
+        ip: user_ip,
+      },
+      { _id: foundToken._id },
+    );
+
+    return tokens;
   }
 
   public async logout(refresh_token: string, onAllDevices: boolean = false) {

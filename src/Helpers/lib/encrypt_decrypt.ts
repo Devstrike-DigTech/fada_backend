@@ -20,6 +20,7 @@ export class EncryptDecrypt {
         return false;
       }
     } catch (e) {
+      console.log(e);
       throw new InternalServerErrorException();
     }
   }
