@@ -10,6 +10,10 @@ export const authMgtSchema = new Schema<IAuthMgt>({
     type: String,
     required: true,
   },
+  iv: {
+    type: String,
+    required: true,
+  },
   ip: {
     type: String,
     required: true,

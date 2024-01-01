@@ -21,3 +21,4 @@ export const REFRESH_TOKEN_TTL = '7d';
 export const REFRESH_TOKEN_COOKIE = 'refresh_token';
 export const ACCESS_TOKEN = 'access_token';
 export const REFRESH_TOKEN_COOKIE_TTL = 7 * 24 * 60 * 60 * 1000;
+

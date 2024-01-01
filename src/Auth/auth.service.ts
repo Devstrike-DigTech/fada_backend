@@ -9,7 +9,7 @@ import {
 import { UserRepository } from 'src/User/user.repository';
 import { RegisterDTO } from './dto';
 import Phone from 'src/Helpers/lib/phone.lib';
-import { EncryptDecrypt } from 'src/Helpers/lib/encrypt_decrypt';
+import { Cryptography } from 'src/Helpers/lib/cryptography';
 import { OTPGenerator } from 'src/Helpers/lib/otpGenerator';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -25,6 +25,11 @@ import { JwtPayload } from 'jsonwebtoken';
 import { IToken } from './types';
 import { AuthMgtRepository } from '../User/authMgt.repository';
 
+interface IRef {
+  _id: string;
+  refresh_token: string;
+  iv: string;
+}
 @Injectable()
 export class AuthService {
   constructor(
@@ -40,7 +45,7 @@ export class AuthService {
     if (typeof formatted_phone_or_unverified_user != 'string') return formatted_phone_or_unverified_user;
 
     //hash password
-    const password = await EncryptDecrypt.encrypt(user.password);
+    const password = await Cryptography.hash(user.password);
 
     //store user in db
     await this.UserRepository.create(
@@ -52,7 +57,7 @@ export class AuthService {
     const otp = OTPGenerator.generate();
 
     //Store user otp to redis or cache
-    await this.cacheManager.set(user.email, await EncryptDecrypt.encrypt(otp), {
+    await this.cacheManager.set(user.email, await Cryptography.hash(otp), {
       ttl: OTP_TTL,
     });
 
@@ -72,7 +77,7 @@ export class AuthService {
     //2) generate otp
     const otp = OTPGenerator.generate();
     //3) hash otp
-    await this.cacheManager.set(user.email, await EncryptDecrypt.encrypt(otp), {
+    await this.cacheManager.set(user.email, await Cryptography.hash(otp), {
       ttl: OTP_TTL,
     });
 
@@ -82,7 +87,7 @@ export class AuthService {
     return 'otp sent to your email';
   }
 
-  public async reset_password(password: string, email: string, otp: string, user_ip, user_agent) {
+  public async reset_password(password: string, email: string, otp: string, user_ip: string, user_agent: string) {
     //check if user email exist
     const user = await this.UserRepository.isEmailExist(email);
 
@@ -95,12 +100,12 @@ export class AuthService {
     if (!hashedOtp) throw new ForbiddenException('expired otp');
 
     //throw error if otp are same
-    if (!(await EncryptDecrypt.decrypt(hashedOtp as string, otp))) throw new ForbiddenException('invalid otp');
+    if (!(await Cryptography.verify(hashedOtp as string, otp))) throw new ForbiddenException('invalid otp');
 
     await this.cacheManager.del(email);
 
     //hash new password
-    const hashedPassword = await EncryptDecrypt.encrypt(password);
+    const hashedPassword = await Cryptography.hash(password);
 
     //update password hash
     const updatedUser = await this.UserRepository.findOneAndUpdate(
@@ -120,7 +125,7 @@ export class AuthService {
 
     if (!hashedOtp) throw new ForbiddenException('expired OTP');
 
-    const isValidOtp = await EncryptDecrypt.decrypt(hashedOtp as string, otp);
+    const isValidOtp = await Cryptography.verify(hashedOtp as string, otp);
 
     if (!isValidOtp) throw new ForbiddenException('invalid OTP');
 
@@ -144,12 +149,14 @@ export class AuthService {
       { email: 1, id: 1, role: 1 },
     );
 
+    const encryptedData = Cryptography.encrypt(tokens.refresh_token);
     await this.AuthMgtRepository.create(
       { _id: 1 },
       {
         user_id: user.id,
         user_agent,
-        refresh_token: await EncryptDecrypt.encrypt(tokens.refresh_token),
+        refresh_token: encryptedData.encryptedText,
+        iv: encryptedData.initializationVector,
         ip: user_ip,
         last_login: new Date().toISOString(),
       },
@@ -187,7 +194,7 @@ export class AuthService {
     ]);
     if (!user) throw new BadRequestException('Email or password is invalid');
     //verify password
-    if (!(await EncryptDecrypt.decrypt(user.password, password)))
+    if (!(await Cryptography.verify(user.password, password)))
       throw new BadRequestException('Email or password is invalid');
     //generate tokens
     const tokens = await this.generateAuthTokens(user.id, user.email, user.role);
@@ -197,17 +204,17 @@ export class AuthService {
       {
         user_id: user.id,
       },
-      { id: 1, refresh_token: 1 },
+      { id: 1, refresh_token: 1, iv: 1 },
     );
-    console.log(saved_refresh_tokens);
-    console.log(tokens, 'okay');
     if (saved_refresh_tokens.length > 0) {
       const here = await this.findOldToken(saved_refresh_tokens, refresh_token);
+      const encryptedData = Cryptography.encrypt(tokens.refresh_token);
       await this.AuthMgtRepository.findOneAndUpdate(
         {
           user_id: user.id,
           user_agent,
-          refresh_token: await EncryptDecrypt.encrypt(tokens.refresh_token),
+          refresh_token: encryptedData.encryptedText,
+          iv: encryptedData.initializationVector,
           ip: user_ip,
           last_login: new Date().toISOString(),
         },
@@ -221,7 +228,7 @@ export class AuthService {
         {
           user_id: user.id,
           user_agent,
-          refresh_token: await EncryptDecrypt.encrypt(tokens.refresh_token),
+          refresh_token: Cryptography.encrypt(tokens.refresh_token),
           ip: user_ip,
           last_login: new Date().toISOString(),
         },
@@ -235,15 +242,15 @@ export class AuthService {
   }
 
   public async refreshToken(user_id: string, refresh_token: string, user_agent: string, user_ip: string) {
-    //Todo refresh token functionality
     const userRefreshTokens = await this.AuthMgtRepository.findMany(
       { user_id },
-      { user_id: 1, id: 1, refresh_token: 1 },
+      { user_id: 1, id: 1, refresh_token: 1, iv: 1 },
     );
 
     if (!userRefreshTokens && userRefreshTokens.length <= 0) throw new UnauthorizedException();
-    const foundToken = userRefreshTokens.find(async (el: any) => {
-      return await EncryptDecrypt.decrypt(el.refresh_token, refresh_token);
+    const foundToken = userRefreshTokens.find(async (el: IRef) => {
+      const decryptedText = Cryptography.decrypt(el.refresh_token, el.iv);
+      return decryptedText == refresh_token;
     });
 
     //1) Find item where refresh token matches
@@ -274,9 +281,11 @@ export class AuthService {
     );
 
     //replace refresh token in db
+    const encryptedData = Cryptography.encrypt(refresh_token);
     await this.AuthMgtRepository.findOneAndUpdate(
       {
-        refresh_token: await EncryptDecrypt.encrypt(refresh_token),
+        refresh_token: encryptedData.encryptedText,
+        iv: encryptedData.initializationVector,
         user_agent,
         ip: user_ip,
       },
@@ -330,12 +339,10 @@ export class AuthService {
     return await this.JwtService.signAsync(payload, { secret, expiresIn: ttl });
   }
 
-  private async findOldToken(
-    saved_tokens: { _id: string; refresh_token: string }[],
-    old_token: string,
-  ): Promise<string> {
-    const doc = saved_tokens.find(async (el: { _id: string; refresh_token: string }) => {
-      return await EncryptDecrypt.decrypt(el.refresh_token, old_token);
+  private async findOldToken(saved_tokens: IRef[], old_token: string): Promise<string> {
+    const doc = saved_tokens.find(async (el: IRef) => {
+      const decryptedText = Cryptography.decrypt(el.refresh_token, el.iv);
+      return decryptedText == old_token;
     });
 
     if (!doc) return null;
@@ -348,8 +355,6 @@ export class AuthService {
     const randomNumber = Math.floor(Math.random() * 10);
 
     // Convert the number to a 10-character string with leading zeros if necessary
-    const randomString = randomNumber.toString().padStart(10, '0');
-
-    return randomString;
+    return randomNumber.toString().padStart(10, '0');
   }
 }

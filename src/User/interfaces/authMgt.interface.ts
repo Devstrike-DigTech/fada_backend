@@ -7,4 +7,5 @@ export interface IAuthMgt extends Document {
   ip: string;
   user_agent: string;
   last_login: string;
+  iv: string;
 }
