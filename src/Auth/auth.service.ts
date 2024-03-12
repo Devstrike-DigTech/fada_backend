@@ -19,11 +19,14 @@ import {
   OTP_TTL,
   REFRESH_TOKEN_SECRET,
   REFRESH_TOKEN_TTL,
+  ROLE,
 } from 'src/Helpers/Config';
 import { JsonWebTokenError, JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { JwtPayload } from 'jsonwebtoken';
 import { IToken } from './types';
 import { AuthMgtRepository } from '../User/authMgt.repository';
+import { EmailService } from '../mail/mail.service';
+import { PcnService } from '../Externals/Pcn.service';
 
 interface IRef {
   _id: string;
@@ -37,12 +40,23 @@ export class AuthService {
     private readonly AuthMgtRepository: AuthMgtRepository,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly JwtService: JwtService,
+    private readonly emailService: EmailService,
+    private readonly pcnService: PcnService,
   ) {}
 
   public async register(user: RegisterDTO) {
     const formatted_phone_or_unverified_user = await this.validate_registering_user(user.email, user.phone);
 
     if (typeof formatted_phone_or_unverified_user != 'string') return formatted_phone_or_unverified_user;
+
+    //check if user is pharmacist
+    if (user.role == ROLE.PHARMACIST) {
+      if (!user.pcn) throw new BadRequestException('please provide pharmacist pcn');
+      //check if pcn exist
+      const pharm = await this.pcnService.verify(user.pcn);
+
+      if (pharm.FirstName !== user.first_name) throw new BadRequestException('You are an intruder!');
+    }
 
     //hash password
     const password = await Cryptography.hash(user.password);
@@ -61,8 +75,7 @@ export class AuthService {
       ttl: OTP_TTL,
     });
 
-    //Todo Send user otp to email
-    console.log(otp);
+    await this.emailService.sendOtp({ email: user.email, otp, name: user.last_name });
     // const hashed = await this.cacheManager.get(user.email);
 
     return 'OTP sent to email';
@@ -82,7 +95,7 @@ export class AuthService {
     });
 
     //3) send otp to email
-    console.log(otp);
+    await this.emailService.sendOtp({ email: user.email, otp, name: user.last_name });
 
     return 'otp sent to your email';
   }
@@ -162,7 +175,7 @@ export class AuthService {
       },
     );
     //send Welcome Email
-
+    this.emailService.welcomeEmail({ email: user.email, name: user.last_name });
     return tokens;
   }
 
@@ -297,6 +310,8 @@ export class AuthService {
 
   public async logout(refresh_token: string, onAllDevices: boolean = false) {
     //Todo Logout functionality
+    // await this.emailService.welcomeEmail({ email: 'uzoagulujoshua@gmail.com', name: 'Sally Nwamama' });
+    await this.emailService.sendOtp({ email: 'uzoagulujoshua@gmail.com', name: 'Sally Nwamama', otp: '879723' });
   }
 
   private async validate_registering_user(

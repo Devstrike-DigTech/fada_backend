@@ -9,7 +9,9 @@ import { UserModule } from './User/user.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import type { RedisClientOptions } from 'redis';
 import * as redisStore from 'cache-manager-redis-store';
-import { ExternalsModule } from "./Externals/externals.module";
+import { ExternalsModule } from './Externals/externals.module';
+import { MailModule } from './mail/mail.module';
+import { PharmacyModule } from './pharmacy/pharmacy.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { ExternalsModule } from "./Externals/externals.module";
     ExternalsModule,
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(DATABASE_URL),
+    MailModule,
+    PharmacyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

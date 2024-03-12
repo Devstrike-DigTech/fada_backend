@@ -11,7 +11,7 @@ export class UserRepository extends DbRepository<IUser> {
     super(userModel);
   }
 
-  async isEmailExist(email): Promise<IUser | null> {
+  async isEmailExist(email: string): Promise<IUser | null> {
     return await this.findOne({ email }, { email: 1, phone: 1, isVerified: 1 });
   }
 

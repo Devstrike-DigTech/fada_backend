@@ -9,6 +9,7 @@ export interface IUser extends Document {
   google_id: string;
   phone: string;
   dob: string;
+  pcn: string;
   role: string; //enum
   is_verified: boolean;
   active: boolean;

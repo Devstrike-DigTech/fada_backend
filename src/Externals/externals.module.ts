@@ -7,5 +7,6 @@ import { PcnRepository } from './Pcn.repository';
   imports: [],
   controllers: [ExternalsController],
   providers: [PcnRepository, PcnService],
+  exports: [PcnService],
 })
 export class ExternalsModule {}

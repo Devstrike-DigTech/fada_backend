@@ -22,15 +22,19 @@ export const userSchema = new Schema<IUser>({
   password: {
     type: String,
   },
-  google_id: {
-    type: String,
-    unique: true,
-    index: true,
-  },
+  // google_id: {
+  //   type: String,
+  //   unique: true,
+  //   index: true,
+  // },
   phone: {
     type: String,
     unique: true,
     index: true,
+  },
+  pcn: {
+    type: String,
+    unique: true,
   },
   dob: {
     type: String,
@@ -49,4 +53,5 @@ export const userSchema = new Schema<IUser>({
   },
 });
 
-userSchema.index({ email: 1, google_id: 1, fada_id: 1, phone: 1 });
+// userSchema.index({ email: 1, google_id: 1, fada_id: 1, phone: 1 });
+userSchema.index({ email: 1, fada_id: 1, phone: 1 });

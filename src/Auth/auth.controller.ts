@@ -6,7 +6,9 @@ import { Request, Response } from 'express';
 import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_TTL } from '../Helpers/Config';
 import { ResetPasswordDTO } from './dto/resetPassword.dto';
 import { AccessTokenGuard, RefreshTokenGuard } from '../Shared/guards';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly AuthService: AuthService) {}
@@ -124,5 +126,11 @@ export class AuthController {
   public async protectedRoute(@Req() req: Request) {
     console.log(req.user);
     return 'yea';
+  }
+
+  @Get('logout')
+  public async logout() {
+    await this.AuthService.logout('lsf');
+    return 'okay';
   }
 }

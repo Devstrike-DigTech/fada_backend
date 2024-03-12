@@ -26,6 +26,11 @@ export class RegisterDTO {
 
   @IsString()
   @IsNotEmpty()
+  @IsOptional()
+  pcn: string;
+
+  @IsString()
+  @IsNotEmpty()
   @ApiProperty({ example: '10-16-1998' })
   dob: string;
 

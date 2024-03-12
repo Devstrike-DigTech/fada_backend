@@ -1,0 +1,47 @@
+/* General styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+a {
+    color: #00466a;
+    text-decoration: none;
+}
+
+/* Table styles */
+table {
+    border-spacing: 0;
+    width: 100%;
+}
+
+td {
+    vertical-align: middle;
+}
+
+/* Header styles */
+.header {
+    background-color: #eee;
+    padding: 20px;
+}
+
+/* Logo styles */
+.logo {
+    width: 150px;
+}
+
+/* Content styles */
+.content {
+    padding: 20px;
+}
+
+/* Call to action button */
+.cta {
+    background-color: #00466a;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    display: inline-block;
+}
