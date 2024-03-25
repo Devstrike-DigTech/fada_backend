@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './Auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { DATABASE_URL } from './Helpers/Config';
+import { DATABASE_URL, REDIS_URL, REDIS_PORT } from './Helpers/Config';
 import { UserModule } from './User/user.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import type { RedisClientOptions } from 'redis';
@@ -18,7 +18,7 @@ import { PharmacyModule } from './pharmacy/pharmacy.module';
     CacheModule.register<RedisClientOptions>({
       isGlobal: true,
       store: redisStore,
-      url: 'redis://localhost:6379',
+      url: `redis://${REDIS_URL}:${REDIS_PORT}`,
     }),
     AuthModule,
     UserModule,
