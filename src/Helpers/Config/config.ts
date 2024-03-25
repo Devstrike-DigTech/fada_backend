@@ -14,3 +14,6 @@ export const EMAIL = process.env.EMAIL;
 export const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
 export const APPLICATION_NAME = process.env.APPLICATION_NAME;
 export const COMPANY_NAME = process.env.COMPANY_NAME;
+
+export const REDIS_URL = process.env.REDIS_URL;
+export const REDIS_PORT = process.env.REDIS_PORT;
