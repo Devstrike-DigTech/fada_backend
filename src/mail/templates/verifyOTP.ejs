@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+<!--    <link rel="stylesheet" href="/css/otp.style.css">-->
+</head>
+<body>
+<table style="font-family: sans-serif; font-size: 16px; width: 600px; margin: 0 auto; border-collapse: collapse;">
+    <tr>
+        <td style="padding: 20px; border-bottom: 1px solid #eee;">
+            <a href="#" style="color: #00466a; text-decoration: none; font-weight: bold;">
+                <img src="https://static.vecteezy.com/system/resources/previews/007/438/687/original/illustration-of-a-pharmacy-health-pharmacy-logo-free-vector.jpg" alt="Your Brand Logo" style="width: 150px; height: auto;" />
+            </a>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 20px;">
+            <p>Hi <%= locals.name %>,</p>
+            <p>Welcome to the exciting world of <%= locals.appName%>! To complete your verification and unlock all our amazing features, please enter the following one-time password (OTP):</p>
+        </td>
+    </tr>
+    <tr>
+        <td style="text-align: center; background-color: #00466a; color: #fff; padding: 10px; border-radius: 5px;">
+            <h2 style="margin: 0;"><%= locals.otp %></h2>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 20px;">
+            <p>This code will expire in [duration], so hurry and enter it now.</p>
+            <p style="margin-bottom: 0;">If you didn't request this code, please disregard this email and contact us immediately.</p>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 20px; text-align: center;">
+            <a href="#" style="background-color: #00466a; color: #fff; padding: 10px 20px; border-radius: 5px;">Verify Now</a>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 20px; text-align: center;">
+            <p>Already have an account?</p>
+            <p><a href="#" style="color: #00466a;">Sign in here</a></p>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
