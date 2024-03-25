@@ -35,7 +35,4 @@ export interface IPharmacy extends Document {
   pharmacy_type: string; //enum head branch
   pharmacy_working_hour: IWorkHours[];
   head: boolean;
-  // +subscription_id: String
-  // +branches: [String]? (if head)
-  // +head_id: String? (if branch)
 }

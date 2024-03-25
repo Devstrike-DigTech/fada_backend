@@ -14,6 +14,7 @@ import {
 } from 'class-validator';
 import { DaysOfWeek, GeoZone } from 'src/Helpers/Config';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from "class-transformer";
 
 class AddressDto {
   @IsString()
@@ -37,7 +38,11 @@ class AddressDto {
   address_town?: string;
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ required: false, description: 'Pharmacy address line 1', example: '24 Mbadinuju street new haven' })
+  @ApiProperty({
+    required: false,
+    description: 'Pharmacy address line 1',
+    example: '4 Kenema Close. Off Sakono Street,',
+  })
   address_line_1: string;
   @IsString()
   @IsOptional()
@@ -45,7 +50,7 @@ class AddressDto {
   address_landmark_1?: string;
   @IsString()
   @IsOptional()
-  @ApiProperty({ required: false, description: 'Pharmacy address line 2', example: '24 kunjingworo street new haven' })
+  @ApiProperty({ required: false, description: 'Pharmacy address line 2', example: 'Adetokunbo Ademola Cres, Abuja' })
   address_line_2?: string;
   @IsString()
   @IsOptional()
@@ -80,6 +85,7 @@ export class CreatePharmacyDto {
   @ApiProperty({ example: '08149575338' })
   pharmacy_phone_number: string;
   @ValidateNested()
+  @Type(() => AddressDto)
   @ApiProperty({
     description: 'Address details of the pharmacy',
     type: AddressDto, // Reference AddressDto for structure
@@ -111,6 +117,7 @@ export class CreatePharmacyDto {
   @ApiProperty({ example: '09AEDC23' })
   pharmacy_cac_no: string;
   @ValidateNested({ each: true })
+  @Type(() => WorkHoursDto)
   @ApiProperty({
     example: [
       { day: 'Monday', open: '08:00', close: '18:00' },

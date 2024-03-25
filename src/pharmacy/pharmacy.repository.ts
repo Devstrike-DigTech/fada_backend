@@ -10,4 +10,9 @@ export class PharmacyRepository extends DbRepository<IPharmacy> {
   constructor(@InjectModel(PHARMACY_MODEL) pharmacyModel: Model<IPharmacy>) {
     super(pharmacyModel);
   }
+
+  public async ownerAlreadyHasPharmacy(owner: string): Promise<boolean> {
+    const res = await this.findOne({ pharmacy_owner_id: owner, head: true });
+    return !!res;
+  }
 }
