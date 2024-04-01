@@ -1,6 +1,6 @@
-import { Injectable } from "@nestjs/common";
-import { PcnRepository } from "./Pcn.repository";
-import { PcnDto } from "./dto/pcn.dto";
+import { Injectable } from '@nestjs/common';
+import { PcnRepository } from './Pcn.repository';
+import { PcnDto } from './dto/pcn.dto';
 
 @Injectable()
 export class PcnService {
