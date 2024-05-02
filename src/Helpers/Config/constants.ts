@@ -6,6 +6,7 @@ export const DATABASE_CONNECTION = 'DATABASE_CONNECTION';
 export const USER_MODEL = 'users';
 export const AUTH_MGT_MODEL = 'authMgt';
 export const PHARMACY_MODEL = 'pharmacies';
+export const DRUG_MODEL = 'drugs';
 /**
  * constants
  */

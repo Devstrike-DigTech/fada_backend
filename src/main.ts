@@ -18,7 +18,6 @@ async function bootstrap() {
     .setTitle('Fada Docs')
     .setDescription('API Documentation of Fada Project')
     .setVersion('1.0')
-    // .addTag('fada')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);

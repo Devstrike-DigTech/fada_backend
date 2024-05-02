@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { PharmacyRepository } from './pharmacy.repository';
-import { CreatePharmacyDto } from './dto/createPharmacy.dto';
-import Phone from '../Helpers/lib/phone.lib';
-import { UserRepository } from '../User/user.repository';
-import { ROLE } from '../Helpers/Config';
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { PharmacyRepository } from "./pharmacy.repository";
+import { CreatePharmacyDto } from "./dto/createPharmacy.dto";
+import Phone from "../Helpers/lib/phone.lib";
+import { UserRepository } from "../User/user.repository";
+import { ROLE } from "../Helpers/Config";
+import { IPharmacy } from "./pharmacy.interface";
 
 @Injectable()
 export class PharmacyService {
@@ -22,5 +23,9 @@ export class PharmacyService {
       throw new BadRequestException('Owner cannot create multiple pharmacies');
 
     return await this.PharmacyRepository.create({}, { ...payload, pharmacy_owner_id: owner_id });
+  }
+
+  public async getPharmacy(payload: Partial<IPharmacy>) {
+    return await this.PharmacyRepository.findOne(payload, {__v: 0});
   }
 }

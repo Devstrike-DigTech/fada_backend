@@ -47,6 +47,7 @@ const workingHoursSchema = new Schema<IWorkHours>({
     },
   },
 });
+
 export const pharmacySchema = new Schema<IPharmacy>({
   pharmacy_name: {
     type: String,

@@ -19,9 +19,7 @@ export class UserRepository extends DbRepository<IUser> {
     return !!(await this.model.findOne({ phone }));
   }
 
-  async findOneFromUniqueIdentifiers(
-    condition: Partial<Record<keyof IUser, string>>[],
-  ): Promise<IUser | null> {
+  async findOneFromUniqueIdentifiers(condition: Partial<Record<keyof IUser, string>>[]): Promise<IUser | null> {
     return this.model.findOne({ $or: condition });
   }
 }
